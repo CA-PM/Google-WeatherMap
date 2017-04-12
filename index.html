@@ -1,0 +1,405 @@
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+
+    <title>CA Performance Management - OpenAPI WeatherMap powered by GoogleMaps</title>
+    <link rel="stylesheet" href="css/CA_dashboard.css" />
+    <script type="text/javascript" src="./lib/mine/caHelperFunctions.js"></script>
+    <script type="text/javascript" src="./lib/d3/d3.min.js"></script>
+    <script type="text/javascript" src="./lib/d3/d3-queue.v3.min.js"></script>
+    <script type="text/javascript" src="./lib/spin.js"></script>
+    <script type="text/javascript" src="./lib/jquery/jquery-1.11.1.min.js"></script>
+    <script type="text/javascript" src="./lib/markerclusterer.js"></script>
+
+</head>
+
+<body>
+    <div id="map" style="height: 99%;width: 99%;"> </div>
+
+<script>
+    
+    var devices; // Raw data set for devices
+    var interfaces; // Raw data set for interfaces
+    var locations=({}); // Prepared data set for Sites
+    var connections=({});
+    var markers=[]; // The markers for items in CAPC
+    var map; // The Map object
+    var geoCoordinates=[]; // List of [longitude, latitude] locations
+    var centerMapCoordinates;
+    var redColor="rgb(208,45,38)";
+    var orangeColor="rgb(243,127,32)";
+    var yellowColor="rgb(254,192,23)";
+    var greenColor="rgb(30,159,59)";
+    var myLatLng;
+    var utilizationColor, speedThickness,spinTarget,spinner,datasetLoaded;
+
+    var neutralBlueTheme=[{"featureType":"water","elementType":"geometry","stylers":[{"color":"#193341"}]},{"featureType":"landscape","elementType":"geometry","stylers":[{"color":"#2c5a71"}]},{"featureType":"road","elementType":"geometry","stylers":[{"color":"#29768a"},{"lightness":-37}]},{"featureType":"poi","elementType":"geometry","stylers":[{"color":"#406d80"}]},{"featureType":"transit","elementType":"geometry","stylers":[{"color":"#406d80"}]},{"elementType":"labels.text.stroke","stylers":[{"visibility":"on"},{"color":"#3e606f"},{"weight":2},{"gamma":0.84}]},{"elementType":"labels.text.fill","stylers":[{"color":"#ffffff"}]},{"featureType":"administrative","elementType":"geometry","stylers":[{"weight":0.6},{"color":"#1a3541"}]},{"elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#2c5a71"}]}];
+    var shadesOfGreyTheme=[{"featureType":"all","elementType":"labels.text.fill","stylers":[{"saturation":36},{"color":"#000000"},{"lightness":40}]},{"featureType":"all","elementType":"labels.text.stroke","stylers":[{"visibility":"on"},{"color":"#000000"},{"lightness":16}]},{"featureType":"all","elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"administrative","elementType":"geometry.fill","stylers":[{"color":"#000000"},{"lightness":20}]},{"featureType":"administrative","elementType":"geometry.stroke","stylers":[{"color":"#000000"},{"lightness":17},{"weight":1.2}]},{"featureType":"landscape","elementType":"geometry","stylers":[{"color":"#000000"},{"lightness":20}]},{"featureType":"poi","elementType":"geometry","stylers":[{"color":"#000000"},{"lightness":21}]},{"featureType":"road.highway","elementType":"geometry.fill","stylers":[{"color":"#000000"},{"lightness":17}]},{"featureType":"road.highway","elementType":"geometry.stroke","stylers":[{"color":"#000000"},{"lightness":29},{"weight":0.2}]},{"featureType":"road.arterial","elementType":"geometry","stylers":[{"color":"#000000"},{"lightness":18}]},{"featureType":"road.local","elementType":"geometry","stylers":[{"color":"#000000"},{"lightness":16}]},{"featureType":"transit","elementType":"geometry","stylers":[{"color":"#000000"},{"lightness":19}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#000000"},{"lightness":17}]}];
+
+    var lightGreyTheme=[{"featureType":"water","elementType":"geometry.fill","stylers":[{"color":"#d3d3d3"}]},{"featureType":"transit","stylers":[{"color":"#808080"},{"visibility":"off"}]},{"featureType":"road.highway","elementType":"geometry.stroke","stylers":[{"visibility":"on"},{"color":"#b3b3b3"}]},{"featureType":"road.highway","elementType":"geometry.fill","stylers":[{"color":"#ffffff"}]},{"featureType":"road.local","elementType":"geometry.fill","stylers":[{"visibility":"on"},{"color":"#ffffff"},{"weight":1.8}]},{"featureType":"road.local","elementType":"geometry.stroke","stylers":[{"color":"#d7d7d7"}]},{"featureType":"poi","elementType":"geometry.fill","stylers":[{"visibility":"on"},{"color":"#ebebeb"}]},{"featureType":"administrative","elementType":"geometry","stylers":[{"color":"#a7a7a7"}]},{"featureType":"road.arterial","elementType":"geometry.fill","stylers":[{"color":"#ffffff"}]},{"featureType":"road.arterial","elementType":"geometry.fill","stylers":[{"color":"#ffffff"}]},{"featureType":"landscape","elementType":"geometry.fill","stylers":[{"visibility":"on"},{"color":"#efefef"}]},{"featureType":"road","elementType":"labels.text.fill","stylers":[{"color":"#696969"}]},{"featureType":"administrative","elementType":"labels.text.fill","stylers":[{"visibility":"on"},{"color":"#737373"}]},{"featureType":"poi","elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"poi","elementType":"labels","stylers":[{"visibility":"off"}]},{"featureType":"road.arterial","elementType":"geometry.stroke","stylers":[{"color":"#d6d6d6"}]},{"featureType":"road","elementType":"labels.icon","stylers":[{"visibility":"off"}]},{},{"featureType":"poi","elementType":"geometry.fill","stylers":[{"color":"#dadada"}]}];
+
+    var cleanGreyTheme=[{"featureType":"administrative","elementType":"labels","stylers":[{"visibility":"off"}]},{"featureType":"administrative.country","elementType":"geometry.stroke","stylers":[{"visibility":"off"}]},{"featureType":"administrative.province","elementType":"geometry.stroke","stylers":[{"visibility":"off"}]},{"featureType":"landscape","elementType":"geometry","stylers":[{"visibility":"on"},{"color":"#e3e3e3"}]},{"featureType":"landscape.natural","elementType":"labels","stylers":[{"visibility":"off"}]},{"featureType":"poi","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"road","elementType":"all","stylers":[{"color":"#cccccc"}]},{"featureType":"road","elementType":"labels","stylers":[{"visibility":"off"}]},{"featureType":"transit","elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"transit.line","elementType":"geometry","stylers":[{"visibility":"off"}]},{"featureType":"transit.line","elementType":"labels.text","stylers":[{"visibility":"off"}]},{"featureType":"transit.station.airport","elementType":"geometry","stylers":[{"visibility":"off"}]},{"featureType":"transit.station.airport","elementType":"labels","stylers":[{"visibility":"off"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#FFFFFF"}]},{"featureType":"water","elementType":"labels","stylers":[{"visibility":"off"}]}];
+
+    var lunarLandscapeTheme=[{"stylers":[{"hue":"#ff1a00"},{"invert_lightness":true},{"saturation":-100},{"lightness":33},{"gamma":0.5}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#2D333C"}]}];
+
+    var evenLighterTheme=[{"featureType":"administrative","elementType":"labels.text.fill","stylers":[{"color":"#6195a0"}]},{"featureType":"landscape","elementType":"all","stylers":[{"color":"#f2f2f2"}]},{"featureType":"landscape","elementType":"geometry.fill","stylers":[{"color":"#ffffff"}]},{"featureType":"poi","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"poi.park","elementType":"geometry.fill","stylers":[{"color":"#e6f3d6"},{"visibility":"on"}]},{"featureType":"road","elementType":"all","stylers":[{"saturation":-100},{"lightness":45},{"visibility":"simplified"}]},{"featureType":"road.highway","elementType":"all","stylers":[{"visibility":"simplified"}]},{"featureType":"road.highway","elementType":"geometry.fill","stylers":[{"color":"#f4d2c5"},{"visibility":"simplified"}]},{"featureType":"road.highway","elementType":"labels.text","stylers":[{"color":"#4e4e4e"}]},{"featureType":"road.arterial","elementType":"geometry.fill","stylers":[{"color":"#f4f4f4"}]},{"featureType":"road.arterial","elementType":"labels.text.fill","stylers":[{"color":"#787878"}]},{"featureType":"road.arterial","elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"transit","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"water","elementType":"all","stylers":[{"color":"#eaf6f8"},{"visibility":"on"}]},{"featureType":"water","elementType":"geometry.fill","stylers":[{"color":"#eaf6f8"}]}];
+
+    var mostlyGreyScaleTheme=[{"featureType":"administrative","elementType":"all","stylers":[{"visibility":"on"},{"lightness":33}]},{"featureType":"administrative","elementType":"labels","stylers":[{"saturation":"-100"}]},{"featureType":"administrative","elementType":"labels.text","stylers":[{"gamma":"0.75"}]},{"featureType":"administrative.neighborhood","elementType":"labels.text.fill","stylers":[{"lightness":"-37"}]},{"featureType":"landscape","elementType":"geometry","stylers":[{"color":"#f9f9f9"}]},{"featureType":"landscape.man_made","elementType":"geometry","stylers":[{"saturation":"-100"},{"lightness":"40"},{"visibility":"off"}]},{"featureType":"landscape.natural","elementType":"labels.text.fill","stylers":[{"saturation":"-100"},{"lightness":"-37"}]},{"featureType":"landscape.natural","elementType":"labels.text.stroke","stylers":[{"saturation":"-100"},{"lightness":"100"},{"weight":"2"}]},{"featureType":"landscape.natural","elementType":"labels.icon","stylers":[{"saturation":"-100"}]},{"featureType":"poi","elementType":"geometry","stylers":[{"saturation":"-100"},{"lightness":"80"}]},{"featureType":"poi","elementType":"labels","stylers":[{"saturation":"-100"},{"lightness":"0"}]},{"featureType":"poi.attraction","elementType":"geometry","stylers":[{"lightness":"-4"},{"saturation":"-100"}]},{"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#c5dac6"},{"visibility":"on"},{"saturation":"-95"},{"lightness":"62"}]},{"featureType":"poi.park","elementType":"labels","stylers":[{"visibility":"on"},{"lightness":20}]},{"featureType":"road","elementType":"all","stylers":[{"lightness":20}]},{"featureType":"road","elementType":"labels","stylers":[{"saturation":"-100"},{"gamma":"1.00"}]},{"featureType":"road","elementType":"labels.text","stylers":[{"gamma":"0.50"}]},{"featureType":"road","elementType":"labels.icon","stylers":[{"saturation":"-100"},{"gamma":"0.50"}]},{"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#c5c6c6"},{"saturation":"-100"}]},{"featureType":"road.highway","elementType":"geometry.stroke","stylers":[{"lightness":"-13"}]},{"featureType":"road.highway","elementType":"labels.icon","stylers":[{"lightness":"0"},{"gamma":"1.09"}]},{"featureType":"road.arterial","elementType":"geometry","stylers":[{"color":"#e4d7c6"},{"saturation":"-100"},{"lightness":"47"}]},{"featureType":"road.arterial","elementType":"geometry.stroke","stylers":[{"lightness":"-12"}]},{"featureType":"road.arterial","elementType":"labels.icon","stylers":[{"saturation":"-100"}]},{"featureType":"road.local","elementType":"geometry","stylers":[{"color":"#fbfaf7"},{"lightness":"77"}]},{"featureType":"road.local","elementType":"geometry.fill","stylers":[{"lightness":"-5"},{"saturation":"-100"}]},{"featureType":"road.local","elementType":"geometry.stroke","stylers":[{"saturation":"-100"},{"lightness":"-15"}]},{"featureType":"transit.station.airport","elementType":"geometry","stylers":[{"lightness":"47"},{"saturation":"-100"}]},{"featureType":"water","elementType":"all","stylers":[{"visibility":"on"},{"color":"#acbcc9"}]},{"featureType":"water","elementType":"geometry","stylers":[{"saturation":"53"}]},{"featureType":"water","elementType":"labels.text.fill","stylers":[{"lightness":"-42"},{"saturation":"17"}]},{"featureType":"water","elementType":"labels.text.stroke","stylers":[{"lightness":"61"}]}];
+
+    // Define d3 scales to determine color based on metric value and 
+    // line thickness based on speed
+    function init () {
+    	utilizationColor=d3.scale.threshold().domain([0,50,75,90,100]).range([greenColor,greenColor,yellowColor,orangeColor,redColor]);
+	    //colorlegend("#legend", utilizationColor, "ordinal", {title: "Utilization", boxHeight: 15, boxWidth: 30});
+	    speedThickness=d3.scale.log().domain([100000, 100000000000]).range([1.5,3.5]);
+	    spinTarget = document.getElementById('map');
+	    spinner = new Spinner({color: 'black', lines: 12}).spin(spinTarget);
+		datasetLoaded = false;
+	    getDataSet();
+    }
+
+
+    function getDataSet () {
+
+        var url1,url2;
+        if (getQueryVariable('demo')) {
+           url1="./sampleData/devices.csv";
+           url2="./sampleData/interfaces.csv";
+        }
+        else {
+            url1="/pc/odata/api/devices?$apply=groupby(cpumfs/DeviceItemID," +
+                "aggregate(cpumfs(im_Utilization with average as Value))) " + 
+                "&$select=ID,Name,LocationDesc,Longitude,Latitude,PrimaryIPAddress" + 
+                "&$filter=((length(LocationDesc) ne 0) and (groups/ID eq "+ getQueryVariable('id') + "))" +
+                "&starttime=" + getQueryVariable('startTime') + "&endtime=" + getQueryVariable('endTime') +
+                "&resolution=HOUR" +
+                "&$format=text/csv" +
+                "&top=500";
+
+            url2="/pc/odata/api/interfaces?$apply=groupby(portmfs/ID," + 
+                 "aggregate(portmfs(im_Utilization with average as im_Utilization)," +
+                    "portmfs(im_PctErrors with average as im_PctErrors)," +
+                    "portmfs(im_PctDiscards with average as im_PctDiscards)," +
+                    "portmfs(im_Availability with average as im_Availability)))" +
+                "&$expand=device" +
+                "&$select=ID,Name,DeviceItemID,SpeedIn,ConnectsTo," +
+                "device/ID,device/Name,device/Longitude,device/Latitude,device/LocationDesc" +
+                "&$filter=((length(ConnectsTo) ne 0) and (groups/ID eq "+ getQueryVariable('id') + "))" +
+                "&starttime=" + getQueryVariable('startTime') + "&endtime=" + getQueryVariable('endTime') +
+                "&resolution=HOUR" +
+                "&$format=text/csv" +
+                "&top=500";
+        }
+
+        console.log("url1: " + url1);
+        console.log("url2: " + url2);
+        var spinnerColor="black";
+        var spinTarget = document.getElementById('table');
+        var spinner = new Spinner({color:spinnerColor, lines: 12}).spin(spinTarget);
+
+        d3.queue()
+            .defer(d3.csv, url1)
+            .defer(d3.csv, url2)
+            .awaitAll(function(error, results) {
+                if (error) throw error;
+                    spinner.stop();
+                    processData(results);
+            });
+    }
+
+    function processData (theData) {
+
+        devices=theData[0];
+        interfaces=theData[1];
+
+        devices.forEach(function(d) {
+            if ((Number(d.Latitude) != 0) &&  (Number(d.Longitude) != 0)) {
+                var deviceName=d.Name;
+               var thisUtilizationValue=Number(d['cpumfs/Value']);
+               var icon;
+               // var thisSitesColor=utilizationColor(thisUtilizationValue);
+                // Since there can be multiple interfaces per device and hence multiple copies of the same device
+                // we need to de-duplicate the list to ensure we only have 1 of each device listed. 
+                // This makes looking up much easier
+                console.log("New location found for " + deviceName + " Adding to location lookup table");
+
+                geoCoordinates.push([Number(d.Latitude),Number(d.Longitude)]);
+
+
+                if (thisUtilizationValue >= 90){
+                    icon="./images/pin_red.png";
+                    return true;
+                }
+                else if (thisUtilizationValue >= 30) {
+                    icon="./images/pin_orange.png";
+
+                }
+                else {
+                    icon="./images/pin_green.png";
+                }
+
+                locations[d.Name] = {
+                    name: d.Name,
+                    id: d.ID,
+                    info: {
+                        lat: Number(d.Latitude), 
+                        lng: Number(d.Longitude),
+                        locDesc: d.LocationDesc,
+                        util: thisUtilizationValue.toFixed(2),
+                        id: d.ID,
+                        ipAddr: d.PrimaryIPAddress,
+                        image: icon
+                       // color: thisSitesColor
+                        }
+                   };
+            }
+        });
+
+        console.log("Found " + geoCoordinates.length + " latitude, longitude pairs. " +  geoCoordinates);
+        //centerMapCoordinates=getLatLngCenter(geoCoordinates);
+        //console.log("Calculated center latitude, longitude position: " + centerMapCoordinates);
+        //myLatLng = {lat: geoCoordinates[0], lng: geoCoordinates[1]};
+
+    interfaces.forEach(function(d){
+    	        if (  typeof locations[d.ConnectsTo] === 'undefined' || !locations[d.ConnectsTo]) {
+            console.log("Unable to match interface connection to device.")
+        }
+        else {
+        connections[d.ID] = {
+            name: d.Name,
+            id: d.ID,
+            sourceLat: locations[d['device/Name']].info.lat,
+            sourceLong: locations[d['device/Name']].info.lng,
+            destLat: locations[d.ConnectsTo].info.lat,
+            destLong: locations[d.ConnectsTo].info.lng,
+            sourceDevice: d['device/Name'],
+            sourceDeviceID: d['device/ID'],
+            sourceLocation: d['device/LocationDesc'],
+            destinationLocation: locations[d.ConnectsTo].info.locDesc,
+            destinationDevice: d.ConnectsTo,
+            destinationDeviceID: locations[d.ConnectsTo].id,
+            speedIn: d.SpeedIn,
+            lineThickness: speedThickness(d.SpeedIn),
+            //pos1: [locations[d['device/Name']].info.lat,locations[d['device/Name']].info.lng],
+            //pos2: [locations[d.ConnectsTo].info.lat,locations[d.ConnectsTo].info.lng],
+            metrics: {
+                availability: Number(d['portmfs/im_Availability']).toFixed(2),
+                pctDiscards: Number(d['portmfs/im_PctDiscards']).toFixed(2),
+                pctErrors: Number(d['portmfs/im_PctErrors']).toFixed(2),
+                utilization: Number(d['portmfs/im_Utilization']).toFixed(2),
+                utilizationColor: utilizationColor(Number(d['portmfs/im_Utilization']).toFixed(2))
+            } // End metric assignment
+            };    // End connection assignment
+        }
+        }); // end interfaces.forEach 
+        datasetLoaded = true; 
+        initMap();
+    }; // End processData function
+
+    // Function to generate the Map object and add the
+    // sites and circuits 
+    function initMap () {
+    	// Wait until the data is present before doing this
+		if (!datasetLoaded) {
+			window.setTimeout(initMap,250);
+			return;
+		}
+        // Figure out the bounds
+     /*       var bounds = new google.maps.LatLngBounds();
+            var pos;
+            $.each(locations, function (index, location) {
+                pos = new google.maps.LatLng(location.info.lat, location.info.long); 
+                location.position = pos;
+                bounds.extend(pos);
+            }); */
+
+        function getLatLngCenter(latLngInDegr) {
+        function rad2degr(rad) { return rad * 180 / Math.PI; }
+        function degr2rad(degr) { return degr * Math.PI / 180; }
+        var LATIDX = 0;
+        var LNGIDX = 1;
+        var sumX = 0;
+        var sumY = 0;
+        var sumZ = 0;
+
+        for (var i=0; i<latLngInDegr.length; i++) {
+            var lat = degr2rad(latLngInDegr[i][LATIDX]);
+            var lng = degr2rad(latLngInDegr[i][LNGIDX]);
+            // sum of cartesian coordinates
+            sumX += Math.cos(lat) * Math.cos(lng);
+            sumY += Math.cos(lat) * Math.sin(lng);
+            sumZ += Math.sin(lat);
+        }
+
+        var avgX = sumX / latLngInDegr.length;
+        var avgY = sumY / latLngInDegr.length;
+        var avgZ = sumZ / latLngInDegr.length;
+
+        // convert average x, y, z coordinate to latitude and longtitude
+        var lng = Math.atan2(avgY, avgX);
+        var hyp = Math.sqrt(avgX * avgX + avgY * avgY);
+        var lat = Math.atan2(avgZ, hyp);
+
+        return ([rad2degr(lat), rad2degr(lng)]);
+    }  
+        spinner.stop();
+        var myLatLng = {lat: 38.670280983161014, lng: -94.00697987685888};
+         var mapOptions = {
+              styles: lightGreyTheme,
+              zoom: 3,
+              center: myLatLng,
+              minZoom: 2
+             // center: bounds.getCenter()
+         };
+
+
+        var mapElement = document.getElementById('map');
+
+        // Create the Google Map using our element and options defined above
+        var map = new google.maps.Map(mapElement, mapOptions);
+       // map.fitBounds(bounds);
+        var LatLng = google.maps.LatLng,
+            Point = google.maps.Point,
+            Marker = google.maps.Marker;
+
+        var lineSymbol = { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, strokeColor: "ffffff", strokeWeight: 2, strokeOpacity: .8};
+
+        $.each(locations,function(d, markerss){
+
+            console.log("Placing marker for: name: " + markerss.name);
+
+            var marker = new google.maps.Marker({
+                position: markerss.info,
+                map: map,
+                icon: markerss.info.image
+            });
+
+            var contentString = 
+                '<p><h3>' + markerss.info.locDesc  + '</h3></p>' +
+                '<p class="pair"><span><a href="/pc/redirector?SourceType=262144&LocalID=' + markerss.id + '" target="_blank">' + markerss.name  + '</a></span></p>' +
+                '<p class="pair"><span>Avg CPU Util: </span><span>' + markerss.info.util + '</span></p>' +
+                '<p class="pair"><span>IP Address: </span><span>' + markerss.info.ipAddr + '</span></p>' +
+                '<p class="pair"><span>Location: </span><span>' + markerss.info.locDesc + '</span></p>' +
+                '</p>' +
+                '</div>';
+
+            var infowindow = new google.maps.InfoWindow({
+                maxWidth: 380,
+                content: contentString
+            });
+
+            marker.addListener('click', function() {
+                infowindow.open(map, marker);
+            });
+
+            markers.push(marker);
+
+        });
+
+       // var markerCluster = new MarkerClusterer(map, markers, {imagePath: './images/m'});
+		var counter = 0;
+        $.each(connections,function (d,path){
+			counter++;
+            console.log("Drawing circuit from: " + path.sourceLat +","+path.sourceLong + " to " + path.destLat + "," + path.destLong);
+            var pos1 = new LatLng(path.sourceLat, path.sourceLong);
+            var pos2 = new LatLng(path.destLat, path.destLong);
+            // FInd mid-point
+            var midLat = (path.sourceLat + path.destLat)/2;
+            var midLng = path.sourceLong - path.destLong;
+            if (midLng <= 180 && midLng >= -180) {
+                midLng = (path.sourceLong + path.destLong)/2;
+            } else {
+                midLng = (path.sourceLong + path.destLong +360)/2;
+            }
+			 var lineCoordinates = [
+			    new google.maps.LatLng(path.sourceLat, path.sourceLong),
+			    new google.maps.LatLng(midLat, midLng)
+			  ];
+           var line = new google.maps.Polyline({
+            	id: "line_"+counter,
+                path: lineCoordinates,
+                strokeWeight: path.lineThickness,
+                strokeColor: path.metrics.utilizationColor,
+                icons: [{
+                  icon: lineSymbol,
+                  offset: '95%',
+                  clickable: true
+                }],
+                map: map
+              });
+            var connectionPopUp = 
+                '<h3>' + path.sourceLocation + " to " + path.destinationLocation + '</h3>' +
+                '<p> Interface: <a href="/pc/redirector?SourceType=262144&LocalID=' + path.id + '" : target="_blank">' + path.name  + '</a></p>' +
+                '<p> Source: <a href="/pc/redirector?SourceType=262144&LocalID=' + path.sourceDeviceID + '" target="_blank">' + path.sourceDevice  + '</a></p>' +
+                '<p> Destination: <a href="/pc/redirector?SourceType=262144&LocalID=' + path.destinationDeviceID + '" target="_blank">' + path.destinationDevice  + '</a></p>' +
+                '<p> Availability: ' + path.metrics.availability + ' %</p>' +
+                '<p> Utilization: ' + path.metrics.utilization + ' %</p>' +
+                '<p> Discards: ' + path.metrics.pctDiscards + ' %</p>' +
+                '<p> Errors: ' + path.metrics.pctErrors + ' %</p>' +
+                '</div>';
+
+            var infowindow = new google.maps.InfoWindow({
+                maxWidth: 380,
+                content: connectionPopUp
+            });
+
+            line.addListener('click', function() {
+            	// lines do not have positions so set the position to open off of explicitly using the lat/lng encoded into argument0
+            	// N.B. nothings precludes this parsing of argument0 from changing in the API
+              	infowindow.setPosition(arguments[0].latLng);
+                infowindow.open(map, line);
+            });
+
+        }); // End connection drawing
+
+            function handleSiteClick(thisMap){
+
+        d3.selectAll('.datamaps-bubble').on('click', function(info) { 
+             /* d3.select(this)
+                .transition()
+                .duration(1000)
+                .attr("r",siteSelectedRadius); */
+
+            turnOffGlow();
+            var theseCircuits=[];
+            // User drill-down from circle (device)
+            // Clear the existing onnections
+            var thisDevice=info.name;
+            console.log("User click: " + thisDevice);
+            console.log("Clearing existing arcs");
+
+            // Find all of the connections where this device is the source
+            circuits.forEach(function (c) {
+                if ( (c.sourceDevice == thisDevice) || (c.destinationDevice == thisDevice)  )
+                {
+                    console.log("Found circuit for this device: " + c.sourceDevice + " to " + c.destinationDevice);
+                    //c.type = "full"
+                    theseCircuits.push(c);
+                }
+
+            })
+            console.log("Adding circuits for this device");
+            thisMap.arc(theseCircuits);
+           // makeItGlow();
+            handleLinkHover(thisMap);  
+            handleLinkDrillDown(thisMap);
+
+           // d3.select("#siteTable").remove();
+            d3.select("#circuitTable").remove();
+
+            var theseSortedCircuits=theseCircuits.sort(function(x, y){
+                    return d3.descending(x.util, y.util);
+                })
+            circuitOverviewTable(theseSortedCircuits);
+
+        });
+    }
+    }; // End initMap
+
+     
+</script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCoItdlkH2tHVkGmXrF7DUgx1s1hat8g8k&callback=init">
+    </script>
+</body>
+</html>
