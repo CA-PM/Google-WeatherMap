@@ -11,6 +11,15 @@ An interactive Geo-Map showing devices plotted using Geo-coordinates with interf
 2. Install via CAPC App Deployment
 3. Add to Dashboard
 
+Note: OOB this app uses the hourly data if you want it more granular you 
+can modify the index.html file call for RATE data:
+ 
+Line 75. From: "&resolution=HOUR" +
+                To: "&resolution=RATE"
+ 
+Line 89. From: "&resolution=HOUR"
+                To: "&resolution=RATE"
+                
 ===================================================================================
 
 License (refer to license.txt in folder for 3rd party license details)
