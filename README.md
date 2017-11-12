@@ -1,24 +1,28 @@
 # Network WeatherMap Powered by OpenAPI and Google Maps
 An interactive Geo-Map showing devices plotted using Geo-coordinates with interface connections.
 
-
 ![WeatherMap powered by OpenAPI and Google Maps](WeathermapGoogle.jpg)
 
-
 #### Install and Configure
+##### CAPC 3.0 and later:
+1. Download Application ZIP file from the GitHub repository
+2. Launch CAPC and access the Administration -> App Installer interface 
+3. Select the file downloaded in step 1
+   3a. If updating from a previous version of the App, please select the option to update existing apps
+4. Add an App View to the CAPC Dashboard or context page
+5. Select the CPU Utilization Distribution by hour and save the view & dashboard
 
-1. Download the App from GitHub
-2. Install via CAPC App Deployment
-3. Add to Dashboard
+##### CAPC 2.8.x
+1. Download Application ZIP file from the GitHub repository
+2. Extract the ZIP file 
+3. Launch CAPC and navigate to the desired Dashboard or Context page
+4. Add a Browser View to the CAPC Dashboard or context page
+5. Update the Browser View Name, URL, and Size based on the values in the appConfig.properties file
+6. Save the view and Dashboard
 
-Note: OOTB this app uses the hourly data if you want it more granular you 
-can modify the index.html file call for RATE data:
- 
-Line 75. From: "&resolution=HOUR" +
-                To: "&resolution=RATE"
- 
-Line 89. From: "&resolution=HOUR"
-                To: "&resolution=RATE"
+
+#### Parameters
+1. TBD
                 
 ===================================================================================
 
@@ -41,6 +45,4 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 ===================================================================================
-=======
-#### Modifying the App
->>>>>>> origin/master
+
