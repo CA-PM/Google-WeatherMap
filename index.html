@@ -204,13 +204,13 @@
 			return;
 		}
         // Figure out the bounds
-     /*       var bounds = new google.maps.LatLngBounds();
+            var bounds = new google.maps.LatLngBounds();
             var pos;
             $.each(locations, function (index, location) {
-                pos = new google.maps.LatLng(location.info.lat, location.info.long); 
+                pos = new google.maps.LatLng(location.info.lat, location.info.lng); 
                 location.position = pos;
                 bounds.extend(pos);
-            }); */
+            });
 
         function getLatLngCenter(latLngInDegr) {
         function rad2degr(rad) { return rad * 180 / Math.PI; }
@@ -246,9 +246,8 @@
          var mapOptions = {
               styles: lightGreyTheme,
               zoom: 3,
-              center: myLatLng,
-              minZoom: 2
-             // center: bounds.getCenter()
+              minZoom: 2,
+              center: bounds.getCenter()
          };
 
 
@@ -256,7 +255,7 @@
 
         // Create the Google Map using our element and options defined above
         var map = new google.maps.Map(mapElement, mapOptions);
-       // map.fitBounds(bounds);
+        map.fitBounds(bounds);
         var LatLng = google.maps.LatLng,
             Point = google.maps.Point,
             Marker = google.maps.Marker;
