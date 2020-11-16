@@ -31,6 +31,8 @@
     var greenColor="rgb(30,159,59)";
     var myLatLng;
     var utilizationColor, speedThickness,spinTarget,spinner,datasetLoaded;
+    var metricFamily, metricName, metricLegend;
+    var resolution = resolution(getQueryVariable("resolution"));
 
     var neutralBlueTheme=[{"featureType":"water","elementType":"geometry","stylers":[{"color":"#193341"}]},{"featureType":"landscape","elementType":"geometry","stylers":[{"color":"#2c5a71"}]},{"featureType":"road","elementType":"geometry","stylers":[{"color":"#29768a"},{"lightness":-37}]},{"featureType":"poi","elementType":"geometry","stylers":[{"color":"#406d80"}]},{"featureType":"transit","elementType":"geometry","stylers":[{"color":"#406d80"}]},{"elementType":"labels.text.stroke","stylers":[{"visibility":"on"},{"color":"#3e606f"},{"weight":2},{"gamma":0.84}]},{"elementType":"labels.text.fill","stylers":[{"color":"#ffffff"}]},{"featureType":"administrative","elementType":"geometry","stylers":[{"weight":0.6},{"color":"#1a3541"}]},{"elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#2c5a71"}]}];
     var shadesOfGreyTheme=[{"featureType":"all","elementType":"labels.text.fill","stylers":[{"saturation":36},{"color":"#000000"},{"lightness":40}]},{"featureType":"all","elementType":"labels.text.stroke","stylers":[{"visibility":"on"},{"color":"#000000"},{"lightness":16}]},{"featureType":"all","elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"administrative","elementType":"geometry.fill","stylers":[{"color":"#000000"},{"lightness":20}]},{"featureType":"administrative","elementType":"geometry.stroke","stylers":[{"color":"#000000"},{"lightness":17},{"weight":1.2}]},{"featureType":"landscape","elementType":"geometry","stylers":[{"color":"#000000"},{"lightness":20}]},{"featureType":"poi","elementType":"geometry","stylers":[{"color":"#000000"},{"lightness":21}]},{"featureType":"road.highway","elementType":"geometry.fill","stylers":[{"color":"#000000"},{"lightness":17}]},{"featureType":"road.highway","elementType":"geometry.stroke","stylers":[{"color":"#000000"},{"lightness":29},{"weight":0.2}]},{"featureType":"road.arterial","elementType":"geometry","stylers":[{"color":"#000000"},{"lightness":18}]},{"featureType":"road.local","elementType":"geometry","stylers":[{"color":"#000000"},{"lightness":16}]},{"featureType":"transit","elementType":"geometry","stylers":[{"color":"#000000"},{"lightness":19}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#000000"},{"lightness":17}]}];
@@ -45,16 +47,40 @@
 
     var mostlyGreyScaleTheme=[{"featureType":"administrative","elementType":"all","stylers":[{"visibility":"on"},{"lightness":33}]},{"featureType":"administrative","elementType":"labels","stylers":[{"saturation":"-100"}]},{"featureType":"administrative","elementType":"labels.text","stylers":[{"gamma":"0.75"}]},{"featureType":"administrative.neighborhood","elementType":"labels.text.fill","stylers":[{"lightness":"-37"}]},{"featureType":"landscape","elementType":"geometry","stylers":[{"color":"#f9f9f9"}]},{"featureType":"landscape.man_made","elementType":"geometry","stylers":[{"saturation":"-100"},{"lightness":"40"},{"visibility":"off"}]},{"featureType":"landscape.natural","elementType":"labels.text.fill","stylers":[{"saturation":"-100"},{"lightness":"-37"}]},{"featureType":"landscape.natural","elementType":"labels.text.stroke","stylers":[{"saturation":"-100"},{"lightness":"100"},{"weight":"2"}]},{"featureType":"landscape.natural","elementType":"labels.icon","stylers":[{"saturation":"-100"}]},{"featureType":"poi","elementType":"geometry","stylers":[{"saturation":"-100"},{"lightness":"80"}]},{"featureType":"poi","elementType":"labels","stylers":[{"saturation":"-100"},{"lightness":"0"}]},{"featureType":"poi.attraction","elementType":"geometry","stylers":[{"lightness":"-4"},{"saturation":"-100"}]},{"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#c5dac6"},{"visibility":"on"},{"saturation":"-95"},{"lightness":"62"}]},{"featureType":"poi.park","elementType":"labels","stylers":[{"visibility":"on"},{"lightness":20}]},{"featureType":"road","elementType":"all","stylers":[{"lightness":20}]},{"featureType":"road","elementType":"labels","stylers":[{"saturation":"-100"},{"gamma":"1.00"}]},{"featureType":"road","elementType":"labels.text","stylers":[{"gamma":"0.50"}]},{"featureType":"road","elementType":"labels.icon","stylers":[{"saturation":"-100"},{"gamma":"0.50"}]},{"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#c5c6c6"},{"saturation":"-100"}]},{"featureType":"road.highway","elementType":"geometry.stroke","stylers":[{"lightness":"-13"}]},{"featureType":"road.highway","elementType":"labels.icon","stylers":[{"lightness":"0"},{"gamma":"1.09"}]},{"featureType":"road.arterial","elementType":"geometry","stylers":[{"color":"#e4d7c6"},{"saturation":"-100"},{"lightness":"47"}]},{"featureType":"road.arterial","elementType":"geometry.stroke","stylers":[{"lightness":"-12"}]},{"featureType":"road.arterial","elementType":"labels.icon","stylers":[{"saturation":"-100"}]},{"featureType":"road.local","elementType":"geometry","stylers":[{"color":"#fbfaf7"},{"lightness":"77"}]},{"featureType":"road.local","elementType":"geometry.fill","stylers":[{"lightness":"-5"},{"saturation":"-100"}]},{"featureType":"road.local","elementType":"geometry.stroke","stylers":[{"saturation":"-100"},{"lightness":"-15"}]},{"featureType":"transit.station.airport","elementType":"geometry","stylers":[{"lightness":"47"},{"saturation":"-100"}]},{"featureType":"water","elementType":"all","stylers":[{"visibility":"on"},{"color":"#acbcc9"}]},{"featureType":"water","elementType":"geometry","stylers":[{"saturation":"53"}]},{"featureType":"water","elementType":"labels.text.fill","stylers":[{"lightness":"-42"},{"saturation":"17"}]},{"featureType":"water","elementType":"labels.text.stroke","stylers":[{"lightness":"61"}]}];
 
+    var metrics = { "cpu": "im_Utilization", "availability": "im_Availability", "reachability": "im_Reachability" }
+    var metricLabels = { "cpu": "Avg CPU Util", "availability": "Avg Availability", "reachability": "Avg Reachability" }
+
+    function resolution(resolution) {
+        switch(resolution) {
+            case "300":
+            return "RATE";
+        case "3600":
+            return "HOUR";
+            case "86400":
+        return "DAY";
+            case "604800":
+            return "WEEK";
+        default:
+            return "RATE";
+        }
+    }
+
     // Define d3 scales to determine color based on metric value and 
     // line thickness based on speed
     function init () {
     	utilizationColor=d3.scale.threshold().domain([0,50,75,90,100]).range([greenColor,greenColor,yellowColor,orangeColor,redColor]);
-	    //colorlegend("#legend", utilizationColor, "ordinal", {title: "Utilization", boxHeight: 15, boxWidth: 30});
-	    speedThickness=d3.scale.log().domain([100000, 100000000000]).range([1.5,3.5]);
-	    spinTarget = document.getElementById('map');
-	    spinner = new Spinner({color: 'black', lines: 12}).spin(spinTarget);
-		datasetLoaded = false;
-	    getDataSet();
+	//colorlegend("#legend", utilizationColor, "ordinal", {title: "Utilization", boxHeight: 15, boxWidth: 30});
+	speedThickness=d3.scale.log().domain([100000, 100000000000]).range([1.5,3.5]);
+	spinTarget = document.getElementById('map');
+	spinner = new Spinner({color: 'black', lines: 12}).spin(spinTarget);
+	datasetLoaded = false;
+	metricFamily = "cpu"
+        if (getQueryVariable('mf') && getQueryVariable('mf').toLowerCase() in metrics) 
+	   metricFamily = getQueryVariable('mf').toLowerCase();
+	metricName = metrics[metricFamily];
+	metricLegend = metricLabels[metricFamily];
+	console.log("MetricFamily: " + metricFamily.replace(/\b(\w)/g, s => s.toUpperCase()) + ", Metric: " + metricName + ", MetricLegend: " + metricLegend);
+	getDataSet();
     }
 
 
@@ -66,12 +92,12 @@
            url2="./sampleData/interfaces.csv";
         }
         else {
-            url1="/pc/odata/api/devices?$apply=groupby(cpumfs/DeviceItemID," +
-                "aggregate(cpumfs(im_Utilization with average as Value))) " + 
+            url1="/pc/odata/api/devices?$apply=groupby(" + metricFamily + "mfs/DeviceItemID," +
+                "aggregate(" + metricFamily + "mfs(" + metricName + " with average as Value))) " + 
                 "&$select=ID,Name,LocationDesc,Longitude,Latitude,PrimaryIPAddress" + 
                 "&$filter=((length(LocationDesc) ne 0) and (groups/ID eq "+ getQueryVariable('id') + "))" +
                 "&starttime=" + getQueryVariable('startTime') + "&endtime=" + getQueryVariable('endTime') +
-                "&resolution=HOUR" +
+                "&resolution=" + resolution +
                 "&$format=text/csv" +
                 "&top=500";
 
@@ -85,7 +111,7 @@
                 "device/ID,device/Name,device/Longitude,device/Latitude,device/LocationDesc" +
                 "&$filter=((length(ConnectsTo) ne 0) and (groups/ID eq "+ getQueryVariable('id') + "))" +
                 "&starttime=" + getQueryVariable('startTime') + "&endtime=" + getQueryVariable('endTime') +
-                "&resolution=HOUR" +
+                "&resolution=" + resolution +
                 "&$format=text/csv" +
                 "&top=500";
         }
@@ -114,7 +140,7 @@
         devices.forEach(function(d) {
             if ((Number(d.Latitude) != 0) &&  (Number(d.Longitude) != 0)) {
                 var deviceName=d.Name;
-               var thisUtilizationValue=Number(d['cpumfs/Value']);
+               var thisUtilizationValue=Number(d[metricFamily + 'mfs/Value']);
                var icon;
                // var thisSitesColor=utilizationColor(thisUtilizationValue);
                 // Since there can be multiple interfaces per device and hence multiple copies of the same device
@@ -124,18 +150,28 @@
 
                 geoCoordinates.push([Number(d.Latitude),Number(d.Longitude)]);
 
-
-                if (thisUtilizationValue >= 90){
-                    icon="./images/pin_red.png";
-                    return true;
-                }
-                else if (thisUtilizationValue >= 30) {
-                    icon="./images/pin_orange.png";
-
-                }
-                else {
-                    icon="./images/pin_green.png";
-                }
+		console.log(metricLegend + ": " + thisUtilizationValue);
+		if (metricFamily == "cpu") {
+                   if (thisUtilizationValue >= 90){
+                      icon="./images/pin_red.png";
+                   }
+                   else if (thisUtilizationValue >= 30) {
+                      icon="./images/pin_orange.png";
+                   }
+                   else {
+                      icon="./images/pin_green.png";
+                   }
+		} else {
+                   if (thisUtilizationValue <= 50){
+                      icon="./images/pin_red.png";
+                   }
+                   else if (thisUtilizationValue <= 99) {
+                      icon="./images/pin_orange.png";
+                   }
+                   else {
+                      icon="./images/pin_green.png";
+                   }
+		}
 
                 locations[d.Name] = {
                     name: d.Name,
@@ -242,10 +278,10 @@
         return ([rad2degr(lat), rad2degr(lng)]);
     }  
         spinner.stop();
-        var myLatLng = {lat: 38.670280983161014, lng: -94.00697987685888};
+        var myLatLng = {lat: 6.9271, lng: 79.5888};
          var mapOptions = {
               styles: lightGreyTheme,
-              zoom: 3,
+              zoom: 7.5,
               minZoom: 2,
               center: bounds.getCenter()
          };
@@ -275,7 +311,7 @@
             var contentString = 
                 '<p><h3>' + markerss.info.locDesc  + '</h3></p>' +
                 '<p class="pair"><span><a href="/pc/redirector?SourceType=262144&LocalID=' + markerss.id + '" target="_blank">' + markerss.name  + '</a></span></p>' +
-                '<p class="pair"><span>Avg CPU Util: </span><span>' + markerss.info.util + '</span></p>' +
+                '<p class="pair"><span>' + metricLegend + ': </span><span>' + markerss.info.util + '</span></p>' +
                 '<p class="pair"><span>IP Address: </span><span>' + markerss.info.ipAddr + '</span></p>' +
                 '<p class="pair"><span>Location: </span><span>' + markerss.info.locDesc + '</span></p>' +
                 '</p>' +
@@ -397,7 +433,7 @@
      
 </script>
     <script async defer
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCoItdlkH2tHVkGmXrF7DUgx1s1hat8g8k&callback=init">
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC60UT3Gh5-CNaAkiASN6qA3uym2rpT4jY&callback=init">
     </script>
 </body>
 </html>
